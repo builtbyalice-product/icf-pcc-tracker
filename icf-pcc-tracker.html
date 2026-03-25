@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICF PCC Coaching Tracker</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE8;
+    --border: #E2DDD4;
+    --text: #1A1916;
+    --muted: #7A776E;
+    --accent: #2D5B45;
+    --accent-light: #E8F2ED;
+    --accent2: #8B5E3C;
+    --accent2-light: #F5EDE4;
+    --danger: #C0392B;
+    --danger-light: #FDECEA;
+    --warn: #B8860B;
+    --warn-light: #FDF6DC;
+    --info: #2563EB;
+    --info-light: #EFF6FF;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  h1,h2,h3,h4 { font-weight: 600; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 14px; }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-brand { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .sidebar-brand h1 { font-size: 15px; color: var(--accent); }
+  .sidebar-brand p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { color: var(--accent); background: var(--accent-light); border-left-color: var(--accent); }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .main { flex: 1; overflow-y: auto; }
+  .page { padding: 28px 32px; max-width: 1100px; }
+  .page-header { margin-bottom: 24px; }
+  .page-header h2 { font-size: 22px; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .stat-card.green { background: var(--accent-light); }
+  .stat-card.green .stat-value { color: var(--accent); }
+  .stat-card.amber { background: var(--warn-light); }
+  .stat-card.amber .stat-value { color: var(--warn); }
+  .stat-card.red { background: var(--danger-light); }
+  .stat-card.red .stat-value { color: var(--danger); }
+  .stat-card.blue { background: var(--info-light); }
+  .stat-card.blue .stat-value { color: var(--info); }
+
+  /* Progress bar */
+  .progress-wrap { margin: 8px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .progress-bar { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.3s; }
+  .progress-fill.amber { background: var(--warn); }
+  .progress-fill.red { background: var(--danger); }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: var(--accent-light); color: var(--accent); }
+  .badge-amber { background: var(--warn-light); color: var(--warn); }
+  .badge-red { background: var(--danger-light); color: var(--danger); }
+  .badge-blue { background: var(--info-light); color: var(--info); }
+  .badge-gray { background: var(--surface2); color: var(--muted); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: #224535; }
+  .btn-danger { background: var(--danger-light); color: var(--danger); border-color: var(--danger); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--muted); }
+  input[type=text], input[type=email], input[type=tel], input[type=date], input[type=number], select, textarea {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); width: 100%; outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 72px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--surface); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .modal-header h3 { font-size: 16px; }
+  .modal-close { background: none; border: none; font-size: 20px; color: var(--muted); padding: 2px 6px; border-radius: 4px; }
+  .modal-close:hover { background: var(--surface2); }
+  .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* Section */
+  .section { margin-bottom: 24px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .section-title { font-size: 15px; font-weight: 600; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Timeline */
+  .timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+  .timeline-content { flex: 1; }
+  .timeline-date { font-size: 11px; color: var(--muted); }
+
+  /* Goal cards */
+  .goal-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; background: var(--surface); }
+  .goal-card h4 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty p { font-size: 13px; }
+
+  /* Avatar */
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+
+  /* Info box */
+  .info-box { background: var(--info-light); border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12px; color: #1D4ED8; margin-bottom: 16px; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .form-grid, .form-grid.cols3 { grid-template-columns: 1fr; }
+    .page { padding: 16px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const PCC_REQS = {
+  totalHours: 500,
+  paidHours: 450,
+  minClients: 25,
+  maxProBono: 50,
+  trainingHours: 125,
+  mentorHours: 10,
+  recentHours: 50,
+  recentMonths: 18,
+};
+
+const FREQ_OPTIONS = ['Weekly', 'Bi-weekly', 'Monthly', 'Varies'];
+const STATUS_OPTIONS = ['Active', 'On hold', 'Completed', 'Prospective'];
+const SESSION_TYPES = ['Individual', 'Group', 'Team'];
+const COLORS = ['#2D5B45','#8B5E3C','#2563EB','#7C3AED','#B45309','#0891B2','#BE185D'];
+
+function getInitials(name) {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+}
+function avatarColor(name) {
+  return COLORS[name.charCodeAt(0) % COLORS.length];
+}
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function monthsFromNow(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+// ─── SAMPLE DATA ─────────────────────────────────────────────────────────────
+const SAMPLE_CLIENTS = [
+  { id: 1, name: 'Maria Chen', email: 'maria@example.com', phone: '(714) 555-0123', address: '123 Oak St, Anaheim, CA', startDate: '2024-09-15', frequency: 'Bi-weekly', status: 'Active', goal: 'Career transition into leadership', paidOrPro: 'Paid', totalSessions: 8, notes: 'Prefers morning sessions. Works in tech.' },
+  { id: 2, name: 'James Okafor', email: 'james@example.com', phone: '(657) 555-0177', address: '456 Elm Ave, Fullerton, CA', startDate: '2024-10-01', frequency: 'Weekly', status: 'Active', goal: 'Work-life integration', paidOrPro: 'Paid', totalSessions: 12, notes: 'Very engaged. Journaling between sessions.' },
+  { id: 3, name: 'Sofia Reyes', email: 'sofia@example.com', phone: '', address: '789 Pine Rd, Orange, CA', startDate: '2024-11-10', frequency: 'Monthly', status: 'On hold', goal: 'Confidence & executive presence', paidOrPro: 'Pro bono', totalSessions: 3, notes: 'Currently paused — resuming Jan.' },
+  { id: 4, name: 'Daniel Park', email: 'dpark@example.com', phone: '(949) 555-0211', address: '', startDate: '2025-01-05', frequency: 'Bi-weekly', status: 'Active', goal: 'Startup founder clarity & resilience', paidOrPro: 'Paid', totalSessions: 6, notes: '' },
+];
+const SAMPLE_SESSIONS = [
+  { id: 1, clientId: 1, date: '2025-01-20', duration: 1.0, type: 'Individual', paid: true, notes: 'Explored values alignment around new role offer.' },
+  { id: 2, clientId: 2, date: '2025-01-22', duration: 1.5, type: 'Individual', paid: true, notes: 'Deep dive into boundary setting at work.' },
+  { id: 3, clientId: 1, date: '2025-02-03', duration: 1.0, type: 'Individual', paid: true, notes: 'Action planning: 30-day experiment with new habits.' },
+  { id: 4, clientId: 4, date: '2025-02-10', duration: 1.0, type: 'Individual', paid: true, notes: 'Identified limiting beliefs around failure.' },
+  { id: 5, clientId: 2, date: '2025-02-14', duration: 1.0, type: 'Individual', paid: true, notes: 'Family system mapping exercise.' },
+  { id: 6, clientId: 3, date: '2024-12-05', duration: 1.0, type: 'Individual', paid: false, notes: 'Initial discovery session.' },
+  { id: 7, clientId: 2, date: '2025-03-01', duration: 1.5, type: 'Individual', paid: true, notes: 'Mid-engagement review — strong progress.' },
+  { id: 8, clientId: 4, date: '2025-03-10', duration: 1.0, type: 'Individual', paid: true, notes: 'Vision board / future self work.' },
+];
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [page, setPage] = useState('dashboard');
+  const [clients, setClients] = useState(SAMPLE_CLIENTS);
+  const [sessions, setSessions] = useState(SAMPLE_SESSIONS);
+  const [trainingHours, setTrainingHours] = useState(125);
+  const [mentorHoursCompleted, setMentorHoursCompleted] = useState(7);
+  const [performanceEvalDone, setPerformanceEvalDone] = useState(false);
+  const [examPassed, setExamPassed] = useState(false);
+  const [targetMonths, setTargetMonths] = useState(6);
+
+  // Derived stats
+  const stats = useMemo(() => {
+    const totalHours = sessions.reduce((s, sess) => s + sess.duration, 0);
+    const paidHours = sessions.filter(s => s.paid).reduce((s, sess) => s + sess.duration, 0);
+    const proBonoHours = totalHours - paidHours;
+    const uniqueClientIds = [...new Set(sessions.map(s => s.clientId))];
+    const activeClients = clients.filter(c => c.status === 'Active').length;
+    const remainingTotal = Math.max(0, PCC_REQS.totalHours - totalHours);
+    const remainingPaid = Math.max(0, PCC_REQS.paidHours - paidHours);
+    const remainingClients = Math.max(0, PCC_REQS.minClients - uniqueClientIds.length);
+    // pace: hours needed / months
+    const hoursPerMonth = targetMonths > 0 ? remainingTotal / targetMonths : 0;
+    const clientsNeeded = Math.max(0, PCC_REQS.minClients - uniqueClientIds.length);
+    return {
+      totalHours, paidHours, proBonoHours,
+      uniqueClients: uniqueClientIds.length,
+      activeClients,
+      remainingTotal, remainingPaid, remainingClients,
+      hoursPerMonth,
+      clientsNeeded,
+      pctTotal: Math.min(100, (totalHours / PCC_REQS.totalHours) * 100),
+      pctPaid: Math.min(100, (paidHours / PCC_REQS.paidHours) * 100),
+      pctClients: Math.min(100, (uniqueClientIds.length / PCC_REQS.minClients) * 100),
+    };
+  }, [sessions, clients, targetMonths]);
+
+  const nav = [
+    { id: 'dashboard', label: 'Dashboard', icon: '◎' },
+    { id: 'clients', label: 'Clients', icon: '◑' },
+    { id: 'sessions', label: 'Sessions', icon: '◷' },
+    { id: 'progress', label: 'PCC Progress', icon: '◈' },
+    { id: 'settings', label: 'Settings', icon: '◻' },
+  ];
+
+  return (
+    <div className="app">
+      <nav className="sidebar">
+        <div className="sidebar-brand">
+          <h1>ICF Tracker</h1>
+          <p>PCC Accreditation</p>
+        </div>
+        {nav.map(n => (
+          <div key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => setPage(n.id)}>
+            <span className="nav-icon">{n.icon}</span>
+            {n.label}
+          </div>
+        ))}
+      </nav>
+      <main className="main">
+        {page === 'dashboard' && <Dashboard stats={stats} clients={clients} sessions={sessions} targetMonths={targetMonths} setTargetMonths={setTargetMonths} />}
+        {page === 'clients' && <Clients clients={clients} setClients={setClients} sessions={sessions} />}
+        {page === 'sessions' && <Sessions sessions={sessions} setSessions={setSessions} clients={clients} />}
+        {page === 'progress' && <Progress stats={stats} trainingHours={trainingHours} setTrainingHours={setTrainingHours} mentorHoursCompleted={mentorHoursCompleted} setMentorHoursCompleted={setMentorHoursCompleted} performanceEvalDone={performanceEvalDone} setPerformanceEvalDone={setPerformanceEvalDone} examPassed={examPassed} setExamPassed={setExamPassed} />}
+        {page === 'settings' && <Settings />}
+      </main>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard({ stats, clients, sessions, targetMonths, setTargetMonths }) {
+  const barColor = (pct) => pct >= 80 ? '' : pct >= 40 ? 'amber' : 'red';
+
+  const recentSessions = [...sessions].sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
+
+  const paceCards = [
+    { label: '3 months', months: 3 },
+    { label: '6 months', months: 6 },
+    { label: '10 months', months: 10 },
+  ];
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2>Dashboard</h2>
+        <p>Your PCC accreditation at a glance</p>
+      </div>
+
+      <div className="stat-grid">
+        <div className={`stat-card ${stats.totalHours >= PCC_REQS.totalHours ? 'green' : ''}`}>
+          <div className="stat-label">Total hours logged</div>
+          <div className="stat-value">{stats.totalHours.toFixed(1)}</div>
+          <div className="stat-sub">of {PCC_REQS.totalHours} required</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Paid hours</div>
+          <div className="stat-value">{stats.paidHours.toFixed(1)}</div>
+          <div className="stat-sub">of {PCC_REQS.paidHours} required</div>
+        </div>
+        <div className={`stat-card ${stats.proBonoHours > PCC_REQS.maxProBono ? 'red' : ''}`}>
+          <div className="stat-label">Pro bono hours</div>
+          <div className="stat-value">{stats.proBonoHours.toFixed(1)}</div>
+          <div className="stat-sub">max {PCC_REQS.maxProBono} allowed</div>
+        </div>
+        <div className={`stat-card ${stats.uniqueClients >= PCC_REQS.minClients ? 'green' : ''}`}>
+          <div className="stat-label">Unique clients</div>
+          <div className="stat-value">{stats.uniqueClients}</div>
+          <div className="stat-sub">of {PCC_REQS.minClients} required</div>
+        </div>
+        <div className="stat-card blue">
+          <div className="stat-label">Active clients</div>
+          <div className="stat-value">{stats.activeClients}</div>
+          <div className="stat-sub">currently engaged</div>
+        </div>
+        <div className="stat-card amber">
+          <div className="stat-label">Hours remaining</div>
+          <div className="stat-value">{stats.remainingTotal.toFixed(0)}</div>
+          <div className="stat-sub">total needed</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+        <div className="card">
+          <div className="section-title" style={{ marginBottom: 14 }}>Progress toward PCC</div>
+          <div className="progress-wrap">
+            <div className="progress-label"><span>Total hours</span><span>{stats.totalHours.toFixed(1)} / {PCC_REQS.totalHours}</span></div>
+            <div className="progress-bar"><div className={`progress-fill ${barColor(stats.pctTotal)}`} style={{ width: stats.pctTotal + '%' }} /></div>
+          </div>
+          <div className="progress-wrap" style={{ marginTop: 10 }}>
+            <div className="progress-label"><span>Paid hours</span><span>{stats.paidHours.toFixed(1)} / {PCC_REQS.paidHours}</span></div>
+            <div className="progress-bar"><div className={`progress-fill ${barColor(stats.pctPaid)}`} style={{ width: stats.pctPaid + '%' }} /></div>
+          </div>
+          <div className="progress-wrap" style={{ marginTop: 10 }}>
+            <div className="progress-label"><span>Unique clients</span><span>{stats.uniqueClients} / {PCC_REQS.minClients}</span></div>
+            <div className="progress-bar"><div className={`progress-fill ${barColor(stats.pctClients)}`} style={{ width: stats.pctClients + '%' }} /></div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-title" style={{ marginBottom: 14 }}>Pace calculator</div>
+          <div className="info-box" style={{ marginBottom: 12 }}>
+            You need <strong>{stats.remainingTotal.toFixed(1)} more hours</strong> and <strong>{stats.clientsNeeded} more clients</strong> for PCC.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {paceCards.map(pc => {
+              const hpm = stats.remainingTotal / pc.months;
+              const cpm = stats.clientsNeeded / pc.months;
+              return (
+                <div key={pc.months} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 6 }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>By {monthsFromNow(pc.months)} <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}>({pc.label})</span></div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{hpm.toFixed(1)} hrs/mo · {Math.ceil(cpm * pc.months)} more clients</div>
+                  </div>
+                  <span className={`badge ${hpm > 30 ? 'badge-red' : hpm > 15 ? 'badge-amber' : 'badge-green'}`}>{hpm.toFixed(1)} hrs/mo</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-header">
+          <div className="section-title">Recent sessions</div>
+        </div>
+        {recentSessions.length === 0 ? <div className="empty"><div className="empty-icon">◷</div><p>No sessions logged yet.</p></div> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Client</th><th>Duration</th><th>Type</th><th>Paid?</th><th>Notes</th></tr></thead>
+              <tbody>
+                {recentSessions.map(s => {
+                  const client = clients.find(c => c.id === s.clientId);
+                  return (
+                    <tr key={s.id}>
+                      <td>{formatDate(s.date)}</td>
+                      <td>{client?.name || '—'}</td>
+                      <td>{s.duration}h</td>
+                      <td><span className="badge badge-gray">{s.type}</span></td>
+                      <td><span className={`badge ${s.paid ? 'badge-green' : 'badge-amber'}`}>{s.paid ? 'Paid' : 'Pro bono'}</span></td>
+                      <td style={{ color: 'var(--muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.notes || '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── CLIENTS ──────────────────────────────────────────────────────────────────
+function Clients({ clients, setClients, sessions }) {
+  const [modal, setModal] = useState(null); // null | 'add' | clientObj
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [detailClient, setDetailClient] = useState(null);
+
+  const filtered = clients.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === 'All' || c.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  function saveClient(data) {
+    if (data.id) {
+      setClients(cs => cs.map(c => c.id === data.id ? data : c));
+    } else {
+      setClients(cs => [...cs, { ...data, id: Date.now(), totalSessions: 0 }]);
+    }
+    setModal(null);
+  }
+
+  function deleteClient(id) {
+    if (window.confirm('Delete this client?')) {
+      setClients(cs => cs.filter(c => c.id !== id));
+      setDetailClient(null);
+    }
+  }
+
+  function clientHours(clientId) {
+    return sessions.filter(s => s.clientId === clientId).reduce((sum, s) => sum + s.duration, 0);
+  }
+
+  function clientSessions(clientId) {
+    return sessions.filter(s => s.clientId === clientId).length;
+  }
+
+  if (detailClient) {
+    const c = clients.find(x => x.id === detailClient);
+    if (!c) { setDetailClient(null); return null; }
+    const cSessions = sessions.filter(s => s.clientId === c.id).sort((a,b) => b.date.localeCompare(a.date));
+    const hours = cSessions.reduce((sum, s) => sum + s.duration, 0);
+    return (
+      <div className="page">
+        <div style={{ marginBottom: 16 }}>
+          <button className="btn btn-sm" onClick={() => setDetailClient(null)}>← Back to clients</button>
+        </div>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 20 }}>
+          <div className="avatar" style={{ background: avatarColor(c.name), color: 'white', width: 52, height: 52, fontSize: 16 }}>{getInitials(c.name)}</div>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: 20, marginBottom: 2 }}>{c.name}</h2>
+            <span className={`badge ${c.status === 'Active' ? 'badge-green' : c.status === 'Completed' ? 'badge-blue' : c.status === 'On hold' ? 'badge-amber' : 'badge-gray'}`}>{c.status}</span>
+            <span className="badge badge-gray" style={{ marginLeft: 6 }}>{c.paidOrPro}</span>
+          </div>
+          <div className="btn-group">
+            <button className="btn btn-sm" onClick={() => setModal(c)}>Edit</button>
+            <button className="btn btn-sm btn-danger" onClick={() => deleteClient(c.id)}>Delete</button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+          <div className="card">
+            <div className="section-title" style={{ marginBottom: 14 }}>Contact info</div>
+            {[
+              ['Email', c.email || '—'],
+              ['Phone', c.phone || '—'],
+              ['Address', c.address || '—'],
+              ['Start date', formatDate(c.startDate)],
+              ['Frequency', c.frequency],
+              ['Goal', c.goal || '—'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', gap: 10, marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: 'var(--muted)', minWidth: 80 }}>{k}</span>
+                <span>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="card">
+            <div className="section-title" style={{ marginBottom: 14 }}>Engagement summary</div>
+            <div className="stat-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div className="stat-card"><div className="stat-label">Sessions</div><div className="stat-value">{cSessions.length}</div></div>
+              <div className="stat-card green"><div className="stat-label">Hours</div><div className="stat-value">{hours.toFixed(1)}</div></div>
+            </div>
+            {c.notes && <div style={{ marginTop: 12, fontSize: 13, color: 'var(--muted)', background: 'var(--surface2)', padding: '10px 12px', borderRadius: 6 }}>{c.notes}</div>}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-title" style={{ marginBottom: 14 }}>Session history</div>
+          {cSessions.length === 0 ? <div className="empty"><p>No sessions logged for this client yet.</p></div> : (
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Duration</th><th>Type</th><th>Paid?</th><th>Notes</th></tr></thead>
+                <tbody>
+                  {cSessions.map(s => (
+                    <tr key={s.id}>
+                      <td>{formatDate(s.date)}</td>
+                      <td>{s.duration}h</td>
+                      <td><span className="badge badge-gray">{s.type}</span></td>
+                      <td><span className={`badge ${s.paid ? 'badge-green' : 'badge-amber'}`}>{s.paid ? 'Paid' : 'Pro bono'}</span></td>
+                      <td style={{ color: 'var(--muted)' }}>{s.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        {modal && <ClientModal client={modal} onSave={saveClient} onClose={() => setModal(null)} />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2>Clients</h2>
+        <p>Manage and track your coaching clients</p>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <input type="text" placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: 140 }}>
+          <option>All</option>
+          {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+        </select>
+        <button className="btn btn-primary" onClick={() => setModal({})}>+ Add client</button>
+      </div>
+      {filtered.length === 0 ? <div className="empty"><div className="empty-icon">◑</div><p>No clients found.</p></div> : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Status</th><th>Type</th><th>Sessions</th><th>Hours</th><th>Frequency</th><th>Start date</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(c => (
+                  <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => setDetailClient(c.id)}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="avatar" style={{ background: avatarColor(c.name), color: 'white' }}>{getInitials(c.name)}</div>
+                        <div>
+                          <div style={{ fontWeight: 500 }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{c.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span className={`badge ${c.status === 'Active' ? 'badge-green' : c.status === 'Completed' ? 'badge-blue' : c.status === 'On hold' ? 'badge-amber' : 'badge-gray'}`}>{c.status}</span></td>
+                    <td><span className={`badge ${c.paidOrPro === 'Paid' ? 'badge-green' : 'badge-amber'}`}>{c.paidOrPro}</span></td>
+                    <td>{clientSessions(c.id)}</td>
+                    <td>{clientHours(c.id).toFixed(1)}h</td>
+                    <td>{c.frequency}</td>
+                    <td>{formatDate(c.startDate)}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-sm" onClick={() => setModal(c)}>Edit</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {modal !== null && <ClientModal client={modal} onSave={saveClient} onClose={() => setModal(null)} />}
+    </div>
+  );
+}
+
+function ClientModal({ client, onSave, onClose }) {
+  const [form, setForm] = useState({
+    id: client.id || null,
+    name: client.name || '',
+    email: client.email || '',
+    phone: client.phone || '',
+    address: client.address || '',
+    startDate: client.startDate || today(),
+    frequency: client.frequency || 'Bi-weekly',
+    status: client.status || 'Active',
+    paidOrPro: client.paidOrPro || 'Paid',
+    goal: client.goal || '',
+    notes: client.notes || '',
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  function submit(e) {
+    e.preventDefault();
+    if (!form.name.trim()) return alert('Name is required.');
+    onSave(form);
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{form.id ? 'Edit client' : 'Add new client'}</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={submit}>
+          <div className="form-grid" style={{ marginBottom: 14 }}>
+            <div className="form-field full"><label>Full name *</label><input type="text" value={form.name} onChange={e => set('name', e.target.value)} required /></div>
+            <div className="form-field"><label>Email</label><input type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
+            <div className="form-field"><label>Phone</label><input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
+            <div className="form-field full"><label>Address</label><input type="text" value={form.address} onChange={e => set('address', e.target.value)} /></div>
+            <div className="form-field"><label>Start date</label><input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)} /></div>
+            <div className="form-field"><label>Frequency</label><select value={form.frequency} onChange={e => set('frequency', e.target.value)}>{FREQ_OPTIONS.map(f => <option key={f}>{f}</option>)}</select></div>
+            <div className="form-field"><label>Status</label><select value={form.status} onChange={e => set('status', e.target.value)}>{STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}</select></div>
+            <div className="form-field"><label>Session type</label><select value={form.paidOrPro} onChange={e => set('paidOrPro', e.target.value)}><option>Paid</option><option>Pro bono</option></select></div>
+            <div className="form-field full"><label>Coaching goal / focus area</label><input type="text" value={form.goal} onChange={e => set('goal', e.target.value)} /></div>
+            <div className="form-field full"><label>Notes</label><textarea value={form.notes} onChange={e => set('notes', e.target.value)} /></div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Save client</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── SESSIONS ─────────────────────────────────────────────────────────────────
+function Sessions({ sessions, setSessions, clients }) {
+  const [modal, setModal] = useState(null);
+  const [filterClient, setFilterClient] = useState('All');
+
+  const sorted = [...sessions].sort((a,b) => b.date.localeCompare(a.date));
+  const filtered = filterClient === 'All' ? sorted : sorted.filter(s => s.clientId === parseInt(filterClient));
+
+  function saveSession(data) {
+    if (data.id) {
+      setSessions(ss => ss.map(s => s.id === data.id ? data : s));
+    } else {
+      setSessions(ss => [...ss, { ...data, id: Date.now() }]);
+    }
+    setModal(null);
+  }
+
+  function deleteSession(id) {
+    if (window.confirm('Delete this session?')) setSessions(ss => ss.filter(s => s.id !== id));
+  }
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2>Sessions</h2>
+        <p>Log and review all coaching sessions</p>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={{ minWidth: 180 }}>
+          <option value="All">All clients</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button className="btn btn-primary" onClick={() => setModal({})}>+ Log session</button>
+      </div>
+      {filtered.length === 0 ? <div className="empty"><div className="empty-icon">◷</div><p>No sessions yet. Start logging!</p></div> : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Client</th><th>Duration</th><th>Type</th><th>Paid?</th><th>Notes</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(s => {
+                  const client = clients.find(c => c.id === s.clientId);
+                  return (
+                    <tr key={s.id}>
+                      <td>{formatDate(s.date)}</td>
+                      <td>
+                        {client ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="avatar" style={{ background: avatarColor(client.name), color: 'white', width: 26, height: 26, fontSize: 10 }}>{getInitials(client.name)}</div>
+                            {client.name}
+                          </div>
+                        ) : '—'}
+                      </td>
+                      <td><strong>{s.duration}h</strong></td>
+                      <td><span className="badge badge-gray">{s.type}</span></td>
+                      <td><span className={`badge ${s.paid ? 'badge-green' : 'badge-amber'}`}>{s.paid ? 'Paid' : 'Pro bono'}</span></td>
+                      <td style={{ color: 'var(--muted)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.notes || '—'}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button className="btn btn-sm" onClick={() => setModal(s)}>Edit</button>
+                          <button className="btn btn-sm btn-danger" onClick={() => deleteSession(s.id)}>×</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {modal !== null && <SessionModal session={modal} clients={clients} onSave={saveSession} onClose={() => setModal(null)} />}
+    </div>
+  );
+}
+
+function SessionModal({ session, clients, onSave, onClose }) {
+  const [form, setForm] = useState({
+    id: session.id || null,
+    clientId: session.clientId || (clients[0]?.id || ''),
+    date: session.date || today(),
+    duration: session.duration || 1.0,
+    type: session.type || 'Individual',
+    paid: session.paid !== undefined ? session.paid : true,
+    notes: session.notes || '',
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  function submit(e) {
+    e.preventDefault();
+    if (!form.clientId) return alert('Select a client.');
+    onSave({ ...form, clientId: parseInt(form.clientId), duration: parseFloat(form.duration) });
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{form.id ? 'Edit session' : 'Log new session'}</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={submit}>
+          <div className="form-grid" style={{ marginBottom: 14 }}>
+            <div className="form-field full"><label>Client *</label>
+              <select value={form.clientId} onChange={e => set('clientId', e.target.value)} required>
+                <option value="">Select client…</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="form-field"><label>Date</label><input type="date" value={form.date} onChange={e => set('date', e.target.value)} required /></div>
+            <div className="form-field"><label>Duration (hours)</label><input type="number" min="0.25" max="8" step="0.25" value={form.duration} onChange={e => set('duration', e.target.value)} required /></div>
+            <div className="form-field"><label>Session type</label><select value={form.type} onChange={e => set('type', e.target.value)}>{SESSION_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+            <div className="form-field"><label>Paid or pro bono?</label>
+              <select value={form.paid ? 'paid' : 'probono'} onChange={e => set('paid', e.target.value === 'paid')}>
+                <option value="paid">Paid</option>
+                <option value="probono">Pro bono</option>
+              </select>
+            </div>
+            <div className="form-field full"><label>Session notes / themes</label><textarea value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Topics covered, breakthroughs, next steps…" /></div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Save session</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── PCC PROGRESS ─────────────────────────────────────────────────────────────
+function Progress({ stats, trainingHours, setTrainingHours, mentorHoursCompleted, setMentorHoursCompleted, performanceEvalDone, setPerformanceEvalDone, examPassed, setExamPassed }) {
+  const reqs = [
+    {
+      label: '125h coach-specific training',
+      detail: 'From an ICF-accredited Level 2 program',
+      completed: trainingHours >= PCC_REQS.trainingHours,
+      progress: Math.min(100, (trainingHours / PCC_REQS.trainingHours) * 100),
+      current: trainingHours,
+      target: PCC_REQS.trainingHours,
+    },
+    {
+      label: '500 coaching hours total',
+      detail: 'Client coaching experience (post-training)',
+      completed: stats.totalHours >= PCC_REQS.totalHours,
+      progress: stats.pctTotal,
+      current: stats.totalHours,
+      target: PCC_REQS.totalHours,
+    },
+    {
+      label: '450 paid hours',
+      detail: 'Of the 500 total hours, at least 450 must be paid',
+      completed: stats.paidHours >= PCC_REQS.paidHours,
+      progress: stats.pctPaid,
+      current: stats.paidHours,
+      target: PCC_REQS.paidHours,
+    },
+    {
+      label: '25 unique clients',
+      detail: 'Minimum distinct coaching clients',
+      completed: stats.uniqueClients >= PCC_REQS.minClients,
+      progress: stats.pctClients,
+      current: stats.uniqueClients,
+      target: PCC_REQS.minClients,
+    },
+    {
+      label: '10 hours mentor coaching',
+      detail: 'With a PCC or MCC credentialed coach. Max 7h group, min 3h individual.',
+      completed: mentorHoursCompleted >= PCC_REQS.mentorHours,
+      progress: Math.min(100, (mentorHoursCompleted / PCC_REQS.mentorHours) * 100),
+      current: mentorHoursCompleted,
+      target: PCC_REQS.mentorHours,
+    },
+    {
+      label: 'Performance evaluation recording',
+      detail: 'Coaching recording assessed at PCC markers level',
+      completed: performanceEvalDone,
+      progress: performanceEvalDone ? 100 : 0,
+      current: performanceEvalDone ? 1 : 0,
+      target: 1,
+      toggle: true,
+    },
+    {
+      label: 'ICF Credentialing Exam',
+      detail: '81-item online scenario-based exam',
+      completed: examPassed,
+      progress: examPassed ? 100 : 0,
+      current: examPassed ? 1 : 0,
+      target: 1,
+      toggle: true,
+    },
+  ];
+
+  const completedCount = reqs.filter(r => r.completed).length;
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2>PCC Progress</h2>
+        <p>Full checklist of ICF Professional Certified Coach requirements</p>
+      </div>
+
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 20 }}>
+        <div className={`stat-card ${completedCount === reqs.length ? 'green' : ''}`}>
+          <div className="stat-label">Requirements met</div>
+          <div className="stat-value">{completedCount} / {reqs.length}</div>
+        </div>
+        <div className="stat-card blue">
+          <div className="stat-label">Pro bono used</div>
+          <div className="stat-value">{stats.proBonoHours.toFixed(1)}h</div>
+          <div className="stat-sub">max {PCC_REQS.maxProBono}h allowed</div>
+        </div>
+        <div className={`stat-card ${stats.proBonoHours > PCC_REQS.maxProBono ? 'red' : 'green'}`}>
+          <div className="stat-label">Pro bono remaining</div>
+          <div className="stat-value">{Math.max(0, PCC_REQS.maxProBono - stats.proBonoHours).toFixed(1)}h</div>
+          <div className="stat-sub">until limit</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {reqs.map((req, i) => (
+          <div key={i} className="card" style={{ borderLeft: `4px solid ${req.completed ? 'var(--accent)' : req.progress > 0 ? 'var(--warn)' : 'var(--border)'}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontSize: 15 }}>{req.completed ? '✓' : '○'}</span>
+                  <strong style={{ fontSize: 14 }}>{req.label}</strong>
+                  {req.completed && <span className="badge badge-green">Complete</span>}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, marginLeft: 23 }}>{req.detail}</div>
+                {!req.toggle && (
+                  <div style={{ marginLeft: 23 }}>
+                    <div className="progress-wrap">
+                      <div className="progress-label">
+                        <span>{typeof req.current === 'number' && req.target > 1 ? `${req.current.toFixed ? req.current.toFixed(1) : req.current} / ${req.target}` : ''}</span>
+                        <span>{req.progress.toFixed(0)}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className={`progress-fill ${req.progress >= 100 ? '' : req.progress >= 50 ? 'amber' : 'red'}`} style={{ width: req.progress + '%' }} />
+                      </div>
+                    </div>
+                    {i === 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: 12 }}>Training hours completed:</label>
+                        <input type="number" min="0" max="200" step="0.5" value={trainingHours} onChange={e => setTrainingHours(parseFloat(e.target.value))} style={{ width: 80, marginLeft: 8 }} />
+                      </div>
+                    )}
+                    {i === 4 && (
+                      <div style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: 12 }}>Mentor hours completed:</label>
+                        <input type="number" min="0" max="20" step="0.5" value={mentorHoursCompleted} onChange={e => setMentorHoursCompleted(parseFloat(e.target.value))} style={{ width: 80, marginLeft: 8 }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {req.toggle && (
+                  <div style={{ marginLeft: 23 }}>
+                    <button className={`btn btn-sm ${req.completed ? 'btn-primary' : ''}`} onClick={() => {
+                      if (i === 5) setPerformanceEvalDone(v => !v);
+                      if (i === 6) setExamPassed(v => !v);
+                    }}>
+                      {req.completed ? '✓ Mark incomplete' : 'Mark complete'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ marginTop: 20, background: 'var(--accent-light)', borderColor: 'var(--accent)' }}>
+        <div className="section-title" style={{ marginBottom: 8 }}>ICF PCC quick reference</div>
+        <div style={{ fontSize: 13, color: 'var(--accent)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {[
+            ['Total experience hours', '500'],
+            ['Paid hours minimum', '450'],
+            ['Pro bono hours max', '50'],
+            ['Minimum unique clients', '25'],
+            ['Training hours (Level 2)', '125'],
+            ['Mentor coaching hours', '10 (min 3 individual)'],
+            ['Recent hours (18 months)', '50'],
+            ['Exam fee (ICF member)', '$375 USD'],
+          ].map(([k,v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(45,91,69,0.15)' }}>
+              <span>{k}</span><strong>{v}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function Settings() {
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h2>Settings & guide</h2>
+        <p>Tips for using this tracker strategically</p>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {[
+          {
+            title: '📋 What to log in each session',
+            content: 'Always capture: date, duration (in 0.25h increments), client name, paid/pro bono status, session type (individual/group), and 1-2 sentences of themes covered. These notes become your application evidence.',
+          },
+          {
+            title: '💰 Paid vs pro bono strategy',
+            content: 'ICF allows max 50 pro bono hours toward PCC. Use pro bono hours strategically — ideal for your first 2-3 clients as you build confidence, or for practicum requirements. After 50h, all hours must be paid.',
+          },
+          {
+            title: '👥 Client acquisition pace',
+            content: 'You need 25 unique clients. Plan for natural churn — some clients complete engagements early. Aim for 30+ clients total to buffer. Track prospects in the client list with "Prospective" status.',
+          },
+          {
+            title: '📝 ICF coaching log format',
+            content: 'ICF requires a coaching log with: client name, contact info, number of hours, and whether sessions were paid or pro bono. This tracker generates that data — export your sessions table when applying.',
+          },
+          {
+            title: '🎤 Mentor coaching (10 hours)',
+            content: 'Must be with a PCC or MCC credentialed coach. Max 7 hours in group settings; minimum 3 must be individual. Schedule this early — good mentors book up. Track separately from client sessions.',
+          },
+          {
+            title: '📼 Performance evaluation recording',
+            content: 'You\'ll need a recording of a real coaching session assessed at PCC markers level. Get consent from your client, record a session where you\'re at your best, and submit for evaluation. This is often the last step.',
+          },
+          {
+            title: '⏰ The 18-month recency rule',
+            content: 'At least 50 of your 500 hours must have occurred within 18 months of your PCC application. Don\'t front-load all your hours years before applying — ensure ongoing active practice.',
+          },
+          {
+            title: '🗂️ Additional things to track',
+            content: 'Consider logging: supervision hours (great for development), CPD/training workshops attended, group or team coaching sessions (count toward hours), and any peer coaching (may count depending on your program path).',
+          },
+        ].map(item => (
+          <div key={item.title} className="card">
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>{item.title}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{item.content}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
