@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ICF Tracker">
+<meta name="theme-color" content="#2D5B45">
+<title>ICF PCC Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F6F2;--surface:#fff;--surface2:#F0EEE8;--border:#E2DDD4;
+  --text:#1A1916;--muted:#7A776E;
+  --accent:#2D5B45;--accent-light:#E8F2ED;
+  --danger:#C0392B;--danger-light:#FDECEA;
+  --warn:#B8860B;--warn-light:#FDF6DC;
+  --info:#2563EB;--info-light:#EFF6FF;
+  --r:10px;--rs:6px;
+  --sb:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow:hidden}
+h1,h2,h3,h4{font-weight:600}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px}
+
+/* Layout */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sb-brand h1{font-size:15px;color:var(--accent)}
+.sb-brand p{font-size:11px;color:var(--muted);margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{color:var(--accent);background:var(--accent-light);border-left-color:var(--accent)}
+.nav-icon{font-size:15px;width:18px;text-align:center}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.page{padding:28px 32px 100px;max-width:1100px}
+
+/* Mobile bottom nav */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:90;padding-bottom:var(--sb)}
+.mob-nav-inner{display:flex}
+.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;font-size:10px;font-weight:500;color:var(--muted);cursor:pointer;user-select:none}
+.mob-nav-item.active{color:var(--accent)}
+.mob-nav-icon{font-size:18px}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(76px + var(--sb));right:20px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(45,91,69,.45);z-index:85;transition:transform .15s;line-height:1}
+.fab:hover{transform:scale(1.07)}
+.fab.desk{bottom:28px}
+
+/* Page header */
+.ph{margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ph h2{font-size:22px;font-weight:600}
+.ph p{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-bottom:20px}
+.sc{background:var(--surface2);border-radius:var(--rs);padding:14px 16px}
+.sl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:6px}
+.sv{font-size:26px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;line-height:1}
+.ss{font-size:11px;color:var(--muted);margin-top:4px}
+.sc.g{background:var(--accent-light)}.sc.g .sv{color:var(--accent)}
+.sc.a{background:var(--warn-light)}.sc.a .sv{color:var(--warn)}
+.sc.r{background:var(--danger-light)}.sc.r .sv{color:var(--danger)}
+.sc.b{background:var(--info-light)}.sc.b .sv{color:var(--info)}
+
+/* Progress */
+.pw{margin:8px 0}
+.pl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+.pb{background:var(--surface2);border-radius:99px;height:8px;overflow:hidden}
+.pf{height:100%;border-radius:99px;background:var(--accent);transition:width .4s ease}
+.pf.a{background:var(--warn)}.pf.r{background:var(--danger)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.bg{background:var(--accent-light);color:var(--accent)}
+.ba{background:var(--warn-light);color:var(--warn)}
+.br{background:var(--danger-light);color:var(--danger)}
+.bb{background:var(--info-light);color:var(--info)}
+.bk{background:var(--surface2);color:var(--muted)}
+
+/* Table */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-p:hover{background:#224535}
+.btn-d{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.btn-s{padding:5px 10px;font-size:12px}
+.bg-r{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Form */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ff{display:flex;flex-direction:column;gap:5px}
+.ff.full{grid-column:1/-1}
+label{font-size:12px;font-weight:500;color:var(--muted)}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{
+  padding:9px 10px;border:1px solid var(--border);border-radius:var(--rs);
+  background:var(--surface);color:var(--text);width:100%;outline:none;transition:border-color .15s;
+  -webkit-appearance:none;appearance:none
+}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A776E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:72px}
+
+/* Modal */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:600px){.mo{align-items:center;padding:20px}}
+.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:24px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto}
+@media(min-width:600px){.modal{border-radius:var(--r)}}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.mh h3{font-size:16px}
+.mc{background:none;border:none;font-size:22px;color:var(--muted);padding:2px 6px;border-radius:4px;line-height:1}
+.mf{margin-top:20px;display:flex;justify-content:flex-end;gap:8px}
+
+/* Misc */
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.st{font-size:15px;font-weight:600}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty p{font-size:13px}
+.av{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.ib{background:var(--info-light);border:1px solid #BFDBFE;border-radius:var(--rs);padding:12px 14px;font-size:12px;color:#1D4ED8}
+.dr{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(84px + var(--sb));left:50%;transform:translateX(-50%);background:#1A1916;color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+@media(min-width:701px){.toast{bottom:28px}}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{display:none}
+  .mob-nav{display:block}
+  .fab.desk{bottom:calc(76px + var(--sb))}
+  .page{padding:16px 16px 110px}
+  .sg{grid-template-columns:repeat(2,1fr)}
+  .dr{grid-template-columns:1fr}
+  .fg{grid-template-columns:1fr}
+  .ff.full{grid-column:1}
+  .ph{flex-direction:column}
+  .hm{display:none}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo,useCallback}=React;
+
+const PCC={totalHours:500,paidHours:450,minClients:25,maxProBono:50,trainingHours:125,mentorHours:10};
+const FREQ=['Weekly','Bi-weekly','Monthly','Varies'];
+const STATUS=['Active','On hold','Completed','Prospective'];
+const STYPES=['Individual','Group','Team'];
+const COLORS=['#2D5B45','#8B5E3C','#2563EB','#7C3AED','#B45309','#0891B2','#BE185D'];
+
+const ini=n=>n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+const avc=n=>COLORS[n.charCodeAt(0)%COLORS.length];
+const tod=()=>new Date().toISOString().slice(0,10);
+const fdt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+const mfn=m=>{const d=new Date();d.setMonth(d.getMonth()+m);return d.toLocaleDateString('en-US',{month:'short',year:'numeric'})};
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function load(k,fb){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+const SC=[
+  {id:1,name:'Maria Chen',email:'maria@example.com',phone:'(714) 555-0123',address:'123 Oak St, Anaheim, CA',startDate:'2024-09-15',frequency:'Bi-weekly',status:'Active',goal:'Career transition into leadership',paidOrPro:'Paid',notes:'Prefers morning sessions.'},
+  {id:2,name:'James Okafor',email:'james@example.com',phone:'(657) 555-0177',address:'456 Elm Ave, Fullerton, CA',startDate:'2024-10-01',frequency:'Weekly',status:'Active',goal:'Work-life integration',paidOrPro:'Paid',notes:'Very engaged. Journaling between sessions.'},
+  {id:3,name:'Sofia Reyes',email:'sofia@example.com',phone:'',address:'789 Pine Rd, Orange, CA',startDate:'2024-11-10',frequency:'Monthly',status:'On hold',goal:'Confidence & executive presence',paidOrPro:'Pro bono',notes:'Paused — resuming Jan.'},
+  {id:4,name:'Daniel Park',email:'dpark@example.com',phone:'(949) 555-0211',address:'',startDate:'2025-01-05',frequency:'Bi-weekly',status:'Active',goal:'Startup founder clarity',paidOrPro:'Paid',notes:''},
+];
+const SS=[
+  {id:1,clientId:1,date:'2025-01-20',duration:1.0,type:'Individual',paid:true,notes:'Values alignment around new role.'},
+  {id:2,clientId:2,date:'2025-01-22',duration:1.5,type:'Individual',paid:true,notes:'Boundary setting at work.'},
+  {id:3,clientId:1,date:'2025-02-03',duration:1.0,type:'Individual',paid:true,notes:'30-day habit experiment.'},
+  {id:4,clientId:4,date:'2025-02-10',duration:1.0,type:'Individual',paid:true,notes:'Limiting beliefs around failure.'},
+  {id:5,clientId:2,date:'2025-02-14',duration:1.0,type:'Individual',paid:true,notes:'Family system mapping.'},
+  {id:6,clientId:3,date:'2024-12-05',duration:1.0,type:'Individual',paid:false,notes:'Initial discovery session.'},
+  {id:7,clientId:2,date:'2025-03-01',duration:1.5,type:'Individual',paid:true,notes:'Mid-engagement review.'},
+  {id:8,clientId:4,date:'2025-03-10',duration:1.0,type:'Individual',paid:true,notes:'Vision board / future self.'},
+];
+
+function App(){
+  const [page,setPage]=useState('dashboard');
+  const [ql,setQl]=useState(false);
+  const [clients,setClientsRaw]=useState(()=>load('icf_clients',SC));
+  const [sessions,setSessionsRaw]=useState(()=>load('icf_sessions',SS));
+  const [meta,setMetaRaw]=useState(()=>load('icf_meta',{trainingHours:125,mentorHours:7,perfEval:false,examPassed:false}));
+
+  const setClients=useCallback(fn=>setClientsRaw(p=>{const n=typeof fn==='function'?fn(p):fn;save('icf_clients',n);return n}),[]);
+  const setSessions=useCallback(fn=>setSessionsRaw(p=>{const n=typeof fn==='function'?fn(p):fn;save('icf_sessions',n);return n}),[]);
+  const setMeta=useCallback(fn=>setMetaRaw(p=>{const n=typeof fn==='function'?fn(p):fn;save('icf_meta',n);return n}),[]);
+
+  const stats=useMemo(()=>{
+    const th=sessions.reduce((s,x)=>s+x.duration,0);
+    const ph=sessions.filter(x=>x.paid).reduce((s,x)=>s+x.duration,0);
+    const pb=th-ph;
+    const uc=[...new Set(sessions.map(x=>x.clientId))].length;
+    const ac=clients.filter(c=>c.status==='Active').length;
+    return{
+      totalHours:th,paidHours:ph,proBonoHours:pb,uniqueClients:uc,activeClients:ac,
+      remainingTotal:Math.max(0,PCC.totalHours-th),
+      remainingClients:Math.max(0,PCC.minClients-uc),
+      hpm:m=>Math.max(0,PCC.totalHours-th)/m,
+      pctTotal:Math.min(100,(th/PCC.totalHours)*100),
+      pctPaid:Math.min(100,(ph/PCC.paidHours)*100),
+      pctClients:Math.min(100,(uc/PCC.minClients)*100),
+    };
+  },[sessions,clients]);
+
+  const exportCSV=()=>{
+    const rows=[['Date','Client','Email','Duration (h)','Type','Paid/Pro bono','Notes']];
+    [...sessions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
+      const c=clients.find(x=>x.id===s.clientId);
+      rows.push([s.date,c?.name||'',c?.email||'',s.duration,s.type,s.paid?'Paid':'Pro bono',(s.notes||'').replace(/,/g,' ')]);
+    });
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
+    a.download='icf-coaching-log-'+tod()+'.csv';a.click();
+    toast('Coaching log exported ✓');
+  };
+
+  const clearData=()=>{
+    if(window.confirm('Delete ALL clients and sessions? This cannot be undone.')){
+      setClients([]);setSessions([]);toast('Data cleared');
+    }
+  };
+
+  const nav=[
+    {id:'dashboard',label:'Dashboard',icon:'◎'},
+    {id:'clients',label:'Clients',icon:'◑'},
+    {id:'sessions',label:'Sessions',icon:'◷'},
+    {id:'progress',label:'Progress',icon:'◈'},
+    {id:'settings',label:'Settings',icon:'◻'},
+  ];
+
+  const isMobile=window.innerWidth<=700;
+
+  return(
+    <div className="app">
+      <nav className="sidebar">
+        <div className="sb-brand"><h1>ICF Tracker</h1><p>PCC Accreditation</p></div>
+        {nav.map(n=>(
+          <div key={n.id} className={`nav-item ${page===n.id?'active':''}`} onClick={()=>setPage(n.id)}>
+            <span className="nav-icon">{n.icon}</span>{n.label}
+          </div>
+        ))}
+        <div style={{marginTop:'auto',padding:'16px 20px 0',borderTop:'1px solid var(--border)'}}>
+          <button className="btn btn-s" style={{width:'100%'}} onClick={exportCSV}>⬇ Export CSV</button>
+        </div>
+      </nav>
+
+      <main className="main">
+        {page==='dashboard'&&<Dashboard stats={stats} clients={clients} sessions={sessions} exportCSV={exportCSV}/>}
+        {page==='clients'&&<Clients clients={clients} setClients={setClients} sessions={sessions}/>}
+        {page==='sessions'&&<Sessions sessions={sessions} setSessions={setSessions} clients={clients}/>}
+        {page==='progress'&&<Progress stats={stats} meta={meta} setMeta={setMeta}/>}
+        {page==='settings'&&<Settings exportCSV={exportCSV} clearData={clearData}/>}
+      </main>
+
+      <button className={`fab ${isMobile?'':'desk'}`} onClick={()=>setQl(true)} title="Quick log session">+</button>
+
+      <nav className="mob-nav">
+        <div className="mob-nav-inner">
+          {nav.map(n=>(
+            <div key={n.id} className={`mob-nav-item ${page===n.id?'active':''}`} onClick={()=>setPage(n.id)}>
+              <span className="mob-nav-icon">{n.icon}</span><span>{n.label}</span>
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {ql&&<SessionModal session={{}} clients={clients} onSave={data=>{setSessions(ss=>[...ss,{...data,id:Date.now()}]);setQl(false);toast('Session logged ✓');}} onClose={()=>setQl(false)}/>}
+    </div>
+  );
+}
+
+/* ── DASHBOARD ── */
+function Dashboard({stats,clients,sessions,exportCSV}){
+  const bc=p=>p>=80?'':p>=40?'a':'r';
+  const recent=[...sessions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  return(
+    <div className="page">
+      <div className="ph">
+        <div><h2>Dashboard</h2><p>Your PCC accreditation at a glance</p></div>
+        <button className="btn btn-s" onClick={exportCSV}>⬇ Export CSV</button>
+      </div>
+      <div className="sg">
+        <div className={`sc ${stats.totalHours>=PCC.totalHours?'g':''}`}><div className="sl">Total hours</div><div className="sv">{stats.totalHours.toFixed(1)}</div><div className="ss">of {PCC.totalHours} required</div></div>
+        <div className="sc"><div className="sl">Paid hours</div><div className="sv">{stats.paidHours.toFixed(1)}</div><div className="ss">of {PCC.paidHours} required</div></div>
+        <div className={`sc ${stats.proBonoHours>PCC.maxProBono?'r':''}`}><div className="sl">Pro bono</div><div className="sv">{stats.proBonoHours.toFixed(1)}</div><div className="ss">max {PCC.maxProBono}h allowed</div></div>
+        <div className={`sc ${stats.uniqueClients>=PCC.minClients?'g':''}`}><div className="sl">Unique clients</div><div className="sv">{stats.uniqueClients}</div><div className="ss">of {PCC.minClients} required</div></div>
+        <div className="sc b"><div className="sl">Active clients</div><div className="sv">{stats.activeClients}</div><div className="ss">currently engaged</div></div>
+        <div className="sc a"><div className="sl">Hours left</div><div className="sv">{stats.remainingTotal.toFixed(0)}</div><div className="ss">to reach 500h</div></div>
+      </div>
+      <div className="dr">
+        <div className="card">
+          <div className="st" style={{marginBottom:14}}>Progress toward PCC</div>
+          {[{l:'Total hours',v:stats.totalHours,t:PCC.totalHours,p:stats.pctTotal},{l:'Paid hours',v:stats.paidHours,t:PCC.paidHours,p:stats.pctPaid},{l:'Clients',v:stats.uniqueClients,t:PCC.minClients,p:stats.pctClients}].map(({l,v,t,p})=>(
+            <div className="pw" key={l}>
+              <div className="pl"><span>{l}</span><span>{typeof v==='number'&&v%1!==0?v.toFixed(1):v} / {t}</span></div>
+              <div className="pb"><div className={`pf ${bc(p)}`} style={{width:p+'%'}}/></div>
+            </div>
+          ))}
+        </div>
+        <div className="card">
+          <div className="st" style={{marginBottom:10}}>Pace to finish</div>
+          <div className="ib" style={{marginBottom:12}}>Need <strong>{stats.remainingTotal.toFixed(1)}h</strong> more · <strong>{stats.remainingClients}</strong> more clients</div>
+          {[{l:'3 months',m:3},{l:'6 months',m:6},{l:'10 months',m:10}].map(({l,m})=>{
+            const h=stats.hpm(m);
+            return(
+              <div key={m} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--surface2)',borderRadius:6,marginBottom:6}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13}}>By {mfn(m)} <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({l})</span></div>
+                  <div style={{fontSize:11,color:'var(--muted)'}}>{h.toFixed(1)} hrs/mo needed</div>
+                </div>
+                <span className={`badge ${h>30?'br':h>15?'ba':'bg'}`}>{h.toFixed(1)} h/mo</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="card">
+        <div className="st" style={{marginBottom:14}}>Recent sessions</div>
+        {recent.length===0
+          ?<div className="empty"><div className="empty-icon">◷</div><p>Tap + to log your first session.</p></div>
+          :<div className="tw"><table>
+            <thead><tr><th>Date</th><th>Client</th><th>Hours</th><th>Paid?</th><th className="hm">Notes</th></tr></thead>
+            <tbody>{recent.map(s=>{
+              const c=clients.find(x=>x.id===s.clientId);
+              return<tr key={s.id}>
+                <td>{fdt(s.date)}</td>
+                <td>{c?.name||'—'}</td>
+                <td><strong>{s.duration}h</strong></td>
+                <td><span className={`badge ${s.paid?'bg':'ba'}`}>{s.paid?'Paid':'Pro bono'}</span></td>
+                <td style={{color:'var(--muted)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} className="hm">{s.notes||'—'}</td>
+              </tr>;
+            })}</tbody>
+          </table></div>
+        }
+      </div>
+    </div>
+  );
+}
+
+/* ── CLIENTS ── */
+function Clients({clients,setClients,sessions}){
+  const [modal,setModal]=useState(null);
+  const [search,setSearch]=useState('');
+  const [fs,setFs]=useState('All');
+  const [detail,setDetail]=useState(null);
+
+  const filtered=clients.filter(c=>{
+    const ms=c.name.toLowerCase().includes(search.toLowerCase())||c.email.toLowerCase().includes(search.toLowerCase());
+    return ms&&(fs==='All'||c.status===fs);
+  });
+
+  const saveClient=data=>{
+    if(data.id){setClients(cs=>cs.map(c=>c.id===data.id?data:c));toast('Client updated ✓');}
+    else{setClients(cs=>[...cs,{...data,id:Date.now()}]);toast('Client added ✓');}
+    setModal(null);
+  };
+  const del=id=>{if(window.confirm('Delete this client?')){setClients(cs=>cs.filter(c=>c.id!==id));setDetail(null);toast('Client deleted');}};
+  const ch=id=>sessions.filter(s=>s.clientId===id).reduce((sum,s)=>sum+s.duration,0);
+  const cn=id=>sessions.filter(s=>s.clientId===id).length;
+
+  if(detail){
+    const c=clients.find(x=>x.id===detail);
+    if(!c){setDetail(null);return null;}
+    const cs=sessions.filter(s=>s.clientId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+    const hrs=cs.reduce((s,x)=>s+x.duration,0);
+    return(
+      <div className="page">
+        <button className="btn btn-s" style={{marginBottom:16}} onClick={()=>setDetail(null)}>← Back</button>
+        <div style={{display:'flex',gap:16,alignItems:'flex-start',marginBottom:20,flexWrap:'wrap'}}>
+          <div className="av" style={{background:avc(c.name),color:'#fff',width:52,height:52,fontSize:16,flexShrink:0}}>{ini(c.name)}</div>
+          <div style={{flex:1}}>
+            <h2 style={{fontSize:20,marginBottom:4}}>{c.name}</h2>
+            <span className={`badge ${c.status==='Active'?'bg':c.status==='Completed'?'bb':c.status==='On hold'?'ba':'bk'}`}>{c.status}</span>
+            <span className="badge bk" style={{marginLeft:6}}>{c.paidOrPro}</span>
+          </div>
+          <div className="bg-r">
+            <button className="btn btn-s" onClick={()=>setModal(c)}>Edit</button>
+            <button className="btn btn-s btn-d" onClick={()=>del(c.id)}>Delete</button>
+          </div>
+        </div>
+        <div className="dr">
+          <div className="card">
+            <div className="st" style={{marginBottom:14}}>Contact info</div>
+            {[['Email',c.email||'—'],['Phone',c.phone||'—'],['Address',c.address||'—'],['Start date',fdt(c.startDate)],['Frequency',c.frequency],['Goal',c.goal||'—']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',gap:10,marginBottom:8,fontSize:13,flexWrap:'wrap'}}>
+                <span style={{color:'var(--muted)',minWidth:76,flexShrink:0}}>{k}</span><span style={{wordBreak:'break-word'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="card">
+            <div className="st" style={{marginBottom:14}}>Summary</div>
+            <div className="sg" style={{gridTemplateColumns:'1fr 1fr'}}>
+              <div className="sc"><div className="sl">Sessions</div><div className="sv">{cs.length}</div></div>
+              <div className="sc g"><div className="sl">Hours</div><div className="sv">{hrs.toFixed(1)}</div></div>
+            </div>
+            {c.notes&&<div style={{marginTop:12,fontSize:13,color:'var(--muted)',background:'var(--surface2)',padding:'10px 12px',borderRadius:6}}>{c.notes}</div>}
+          </div>
+        </div>
+        <div className="card">
+          <div className="st" style={{marginBottom:14}}>Session history</div>
+          {cs.length===0?<div className="empty"><p>No sessions logged yet.</p></div>:(
+            <div className="tw"><table>
+              <thead><tr><th>Date</th><th>Hours</th><th>Paid?</th><th>Notes</th></tr></thead>
+              <tbody>{cs.map(s=>(
+                <tr key={s.id}>
+                  <td>{fdt(s.date)}</td><td>{s.duration}h</td>
+                  <td><span className={`badge ${s.paid?'bg':'ba'}`}>{s.paid?'Paid':'Pro bono'}</span></td>
+                  <td style={{color:'var(--muted)'}}>{s.notes||'—'}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </div>
+        {modal&&<ClientModal client={modal} onSave={saveClient} onClose={()=>setModal(null)}/>}
+      </div>
+    );
+  }
+
+  return(
+    <div className="page">
+      <div className="ph"><div><h2>Clients</h2><p>All coaching clients</p></div></div>
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+        <input type="text" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:130}}/>
+        <select value={fs} onChange={e=>setFs(e.target.value)} style={{width:130}}>
+          <option>All</option>{STATUS.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <button className="btn btn-p" onClick={()=>setModal({})}>+ Add client</button>
+      </div>
+      {filtered.length===0
+        ?<div className="empty"><div className="empty-icon">◑</div><p>No clients found.</p></div>
+        :<div className="card" style={{padding:0,overflow:'hidden'}}>
+          <div className="tw"><table>
+            <thead><tr><th>Name</th><th>Status</th><th>Sessions</th><th>Hours</th><th className="hm">Frequency</th><th></th></tr></thead>
+            <tbody>{filtered.map(c=>(
+              <tr key={c.id} style={{cursor:'pointer'}} onClick={()=>setDetail(c.id)}>
+                <td>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div className="av" style={{background:avc(c.name),color:'#fff'}}>{ini(c.name)}</div>
+                    <div><div style={{fontWeight:500}}>{c.name}</div><div style={{fontSize:11,color:'var(--muted)'}}>{c.email}</div></div>
+                  </div>
+                </td>
+                <td><span className={`badge ${c.status==='Active'?'bg':c.status==='Completed'?'bb':c.status==='On hold'?'ba':'bk'}`}>{c.status}</span></td>
+                <td>{cn(c.id)}</td>
+                <td>{ch(c.id).toFixed(1)}h</td>
+                <td className="hm">{c.frequency}</td>
+                <td onClick={e=>e.stopPropagation()}><button className="btn btn-s" onClick={()=>setModal(c)}>Edit</button></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </div>
+      }
+      {modal!==null&&<ClientModal client={modal} onSave={saveClient} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+function ClientModal({client,onSave,onClose}){
+  const [f,setF]=useState({id:client.id||null,name:client.name||'',email:client.email||'',phone:client.phone||'',address:client.address||'',startDate:client.startDate||tod(),frequency:client.frequency||'Bi-weekly',status:client.status||'Active',paidOrPro:client.paidOrPro||'Paid',goal:client.goal||'',notes:client.notes||''});
+  const s=(k,v)=>setF(p=>({...p,[k]:v}));
+  const sub=e=>{e.preventDefault();if(!f.name.trim())return alert('Name required.');onSave(f);};
+  return(
+    <div className="mo" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="mh"><h3>{f.id?'Edit client':'Add client'}</h3><button className="mc" onClick={onClose}>×</button></div>
+        <form onSubmit={sub}>
+          <div className="fg" style={{marginBottom:14}}>
+            <div className="ff full"><label>Full name *</label><input type="text" value={f.name} onChange={e=>s('name',e.target.value)} required autoFocus/></div>
+            <div className="ff"><label>Email</label><input type="email" value={f.email} onChange={e=>s('email',e.target.value)}/></div>
+            <div className="ff"><label>Phone</label><input type="tel" value={f.phone} onChange={e=>s('phone',e.target.value)}/></div>
+            <div className="ff full"><label>Address</label><input type="text" value={f.address} onChange={e=>s('address',e.target.value)}/></div>
+            <div className="ff"><label>Start date</label><input type="date" value={f.startDate} onChange={e=>s('startDate',e.target.value)}/></div>
+            <div className="ff"><label>Frequency</label><select value={f.frequency} onChange={e=>s('frequency',e.target.value)}>{FREQ.map(x=><option key={x}>{x}</option>)}</select></div>
+            <div className="ff"><label>Status</label><select value={f.status} onChange={e=>s('status',e.target.value)}>{STATUS.map(x=><option key={x}>{x}</option>)}</select></div>
+            <div className="ff"><label>Billing</label><select value={f.paidOrPro} onChange={e=>s('paidOrPro',e.target.value)}><option>Paid</option><option>Pro bono</option></select></div>
+            <div className="ff full"><label>Coaching goal</label><input type="text" value={f.goal} onChange={e=>s('goal',e.target.value)}/></div>
+            <div className="ff full"><label>Notes</label><textarea value={f.notes} onChange={e=>s('notes',e.target.value)}/></div>
+          </div>
+          <div className="mf"><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="submit" className="btn btn-p">Save</button></div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── SESSIONS ── */
+function Sessions({sessions,setSessions,clients}){
+  const [modal,setModal]=useState(null);
+  const [fc,setFc]=useState('All');
+  const sorted=[...sessions].sort((a,b)=>b.date.localeCompare(a.date));
+  const filtered=fc==='All'?sorted:sorted.filter(s=>s.clientId===parseInt(fc));
+  const save=data=>{
+    if(data.id){setSessions(ss=>ss.map(s=>s.id===data.id?data:s));toast('Session updated ✓');}
+    else{setSessions(ss=>[...ss,{...data,id:Date.now()}]);toast('Session logged ✓');}
+    setModal(null);
+  };
+  const del=id=>{if(window.confirm('Delete this session?')){setSessions(ss=>ss.filter(s=>s.id!==id));toast('Session deleted');}};
+  return(
+    <div className="page">
+      <div className="ph"><div><h2>Sessions</h2><p>All coaching sessions</p></div></div>
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+        <select value={fc} onChange={e=>setFc(e.target.value)} style={{flex:1,minWidth:150}}>
+          <option value="All">All clients</option>
+          {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button className="btn btn-p" onClick={()=>setModal({})}>+ Log session</button>
+      </div>
+      {filtered.length===0
+        ?<div className="empty"><div className="empty-icon">◷</div><p>No sessions yet. Tap + to log one.</p></div>
+        :<div className="card" style={{padding:0,overflow:'hidden'}}>
+          <div className="tw"><table>
+            <thead><tr><th>Date</th><th>Client</th><th>Hours</th><th>Paid?</th><th className="hm">Notes</th><th></th></tr></thead>
+            <tbody>{filtered.map(s=>{
+              const c=clients.find(x=>x.id===s.clientId);
+              return<tr key={s.id}>
+                <td>{fdt(s.date)}</td>
+                <td>{c?<div style={{display:'flex',alignItems:'center',gap:8}}><div className="av" style={{background:avc(c.name),color:'#fff',width:26,height:26,fontSize:10}}>{ini(c.name)}</div>{c.name}</div>:'—'}</td>
+                <td><strong>{s.duration}h</strong></td>
+                <td><span className={`badge ${s.paid?'bg':'ba'}`}>{s.paid?'Paid':'Pro bono'}</span></td>
+                <td style={{color:'var(--muted)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} className="hm">{s.notes||'—'}</td>
+                <td><div style={{display:'flex',gap:4}}><button className="btn btn-s" onClick={()=>setModal(s)}>Edit</button><button className="btn btn-s btn-d" onClick={()=>del(s.id)}>×</button></div></td>
+              </tr>;
+            })}</tbody>
+          </table></div>
+        </div>
+      }
+      {modal!==null&&<SessionModal session={modal} clients={clients} onSave={save} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+function SessionModal({session,clients,onSave,onClose}){
+  const [f,setF]=useState({id:session.id||null,clientId:session.clientId||(clients[0]?.id||''),date:session.date||tod(),duration:session.duration||1.0,type:session.type||'Individual',paid:session.paid!==undefined?session.paid:true,notes:session.notes||''});
+  const s=(k,v)=>setF(p=>({...p,[k]:v}));
+  const sub=e=>{e.preventDefault();if(!f.clientId)return alert('Select a client.');onSave({...f,clientId:parseInt(f.clientId),duration:parseFloat(f.duration)});};
+  return(
+    <div className="mo" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="mh"><h3>{f.id?'Edit session':'Log session'}</h3><button className="mc" onClick={onClose}>×</button></div>
+        <form onSubmit={sub}>
+          <div className="fg" style={{marginBottom:14}}>
+            <div className="ff full"><label>Client *</label>
+              <select value={f.clientId} onChange={e=>s('clientId',e.target.value)} required>
+                <option value="">Select client…</option>
+                {clients.filter(c=>c.status!=='Prospective').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="ff"><label>Date</label><input type="date" value={f.date} onChange={e=>s('date',e.target.value)} required/></div>
+            <div className="ff"><label>Duration (hours)</label><input type="number" min="0.25" max="8" step="0.25" value={f.duration} onChange={e=>s('duration',e.target.value)} required/></div>
+            <div className="ff"><label>Session type</label><select value={f.type} onChange={e=>s('type',e.target.value)}>{STYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+            <div className="ff"><label>Billing</label><select value={f.paid?'paid':'pro'} onChange={e=>s('paid',e.target.value==='paid')}><option value="paid">Paid</option><option value="pro">Pro bono</option></select></div>
+            <div className="ff full"><label>Notes / themes</label><textarea value={f.notes} onChange={e=>s('notes',e.target.value)} placeholder="Topics covered, breakthroughs, next steps…"/></div>
+          </div>
+          <div className="mf"><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="submit" className="btn btn-p">Save session</button></div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── PROGRESS ── */
+function Progress({stats,meta,setMeta}){
+  const reqs=[
+    {label:'125h training (Level 2)',detail:'ICF-accredited Level 2 program required',done:meta.trainingHours>=125,pct:Math.min(100,(meta.trainingHours/125)*100),cur:meta.trainingHours,tot:125,
+     ctrl:<div style={{marginTop:8,display:'flex',alignItems:'center',gap:8}}><label style={{fontSize:12}}>Hours completed:</label><input type="number" min="0" max="200" step="0.5" value={meta.trainingHours} onChange={e=>setMeta(m=>({...m,trainingHours:parseFloat(e.target.value)||0}))} style={{width:76}}/></div>},
+    {label:'500 coaching hours total',detail:'Client experience hours (post training start)',done:stats.totalHours>=500,pct:stats.pctTotal,cur:stats.totalHours.toFixed(1),tot:500},
+    {label:'450 paid hours',detail:'Of the 500 total, at least 450 must be paid',done:stats.paidHours>=450,pct:stats.pctPaid,cur:stats.paidHours.toFixed(1),tot:450},
+    {label:'25 unique clients',detail:'Minimum distinct clients coached',done:stats.uniqueClients>=25,pct:stats.pctClients,cur:stats.uniqueClients,tot:25},
+    {label:'10h mentor coaching',detail:'PCC/MCC coach only. Max 7h group, min 3h individual.',done:meta.mentorHours>=10,pct:Math.min(100,(meta.mentorHours/10)*100),cur:meta.mentorHours,tot:10,
+     ctrl:<div style={{marginTop:8,display:'flex',alignItems:'center',gap:8}}><label style={{fontSize:12}}>Hours completed:</label><input type="number" min="0" max="20" step="0.5" value={meta.mentorHours} onChange={e=>setMeta(m=>({...m,mentorHours:parseFloat(e.target.value)||0}))} style={{width:76}}/></div>},
+    {label:'Performance evaluation recording',detail:'Session recorded and assessed at PCC markers level',done:meta.perfEval,toggle:true,onT:()=>setMeta(m=>({...m,perfEval:!m.perfEval}))},
+    {label:'ICF Credentialing Exam',detail:'81-item online scenario-based assessment',done:meta.examPassed,toggle:true,onT:()=>setMeta(m=>({...m,examPassed:!m.examPassed}))},
+  ];
+  const dc=reqs.filter(r=>r.done).length;
+  return(
+    <div className="page">
+      <div className="ph"><div><h2>PCC Progress</h2><p>Full requirements checklist</p></div></div>
+      <div className="sg" style={{gridTemplateColumns:'repeat(3,1fr)',marginBottom:20}}>
+        <div className={`sc ${dc===reqs.length?'g':''}`}><div className="sl">Requirements met</div><div className="sv">{dc}/{reqs.length}</div></div>
+        <div className="sc b"><div className="sl">Pro bono used</div><div className="sv">{stats.proBonoHours.toFixed(1)}h</div><div className="ss">of 50h allowed</div></div>
+        <div className={`sc ${stats.proBonoHours>50?'r':'g'}`}><div className="sl">Pro bono left</div><div className="sv">{Math.max(0,50-stats.proBonoHours).toFixed(1)}h</div></div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {reqs.map((r,i)=>(
+          <div key={i} className="card" style={{borderLeft:`4px solid ${r.done?'var(--accent)':r.pct>0?'var(--warn)':'var(--border)'}`}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+              <span style={{fontSize:16,marginTop:1,flexShrink:0}}>{r.done?'✓':'○'}</span>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                  <strong style={{fontSize:14}}>{r.label}</strong>
+                  {r.done&&<span className="badge bg">Done</span>}
+                </div>
+                <div style={{fontSize:12,color:'var(--muted)',marginTop:2,marginBottom:8}}>{r.detail}</div>
+                {!r.toggle&&<div className="pw">
+                  <div className="pl"><span>{r.cur} / {r.tot}</span><span>{r.pct.toFixed(0)}%</span></div>
+                  <div className="pb"><div className={`pf ${r.pct>=100?'':r.pct>=50?'a':'r'}`} style={{width:r.pct+'%'}}/></div>
+                </div>}
+                {r.ctrl}
+                {r.toggle&&<button className={`btn btn-s ${r.done?'btn-p':''}`} onClick={r.onT}>{r.done?'✓ Mark incomplete':'Mark complete'}</button>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{marginTop:16,background:'var(--accent-light)',borderColor:'var(--accent)'}}>
+        <div className="st" style={{marginBottom:10}}>Quick reference</div>
+        <div style={{fontSize:13,color:'var(--accent)',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+          {[['Total hours','500'],['Paid hours min','450'],['Pro bono max','50h'],['Min clients','25'],['Training (Level 2)','125h'],['Mentor coaching','10h'],['Recent hours (18mo)','50h'],['Exam fee (member)','$375']].map(([k,v])=>(
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid rgba(45,91,69,.12)'}}>
+              <span>{k}</span><strong>{v}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SETTINGS ── */
+function Settings({exportCSV,clearData}){
+  const standalone=window.matchMedia('(display-mode: standalone)').matches;
+  return(
+    <div className="page">
+      <div className="ph"><div><h2>Settings</h2><p>App setup, data, and strategy</p></div></div>
+
+      {standalone
+        ?<div className="card" style={{marginBottom:16,borderColor:'var(--accent)',background:'var(--accent-light)'}}>
+            <div style={{fontSize:13,color:'var(--accent)'}}>✓ Running as installed app. Data saves automatically to this device.</div>
+          </div>
+        :<div className="card" style={{marginBottom:16,borderColor:'var(--accent)',background:'var(--accent-light)'}}>
+            <div className="st" style={{color:'var(--accent)',marginBottom:8}}>📱 Install on your iPhone</div>
+            <div style={{fontSize:13,color:'var(--accent)',lineHeight:1.7,marginBottom:10}}>
+              1. Open this page in <strong>Safari</strong> on your iPhone<br/>
+              2. Tap the <strong>Share</strong> button (box with arrow at bottom of Safari)<br/>
+              3. Tap <strong>"Add to Home Screen"</strong><br/>
+              4. Tap <strong>Add</strong> — the app icon will appear on your home screen
+            </div>
+            <div style={{fontSize:12,color:'var(--accent)',opacity:.8}}>Your data is already saving automatically in this browser.</div>
+          </div>
+      }
+
+      <div className="card" style={{marginBottom:16}}>
+        <div className="st" style={{marginBottom:10}}>Data management</div>
+        <div style={{fontSize:13,color:'var(--muted)',marginBottom:14,lineHeight:1.6}}>
+          Data is stored locally on this device. Export a CSV backup regularly — your coaching log is a required ICF submission document.
+        </div>
+        <div className="bg-r">
+          <button className="btn btn-p" onClick={exportCSV}>⬇ Export coaching log (CSV)</button>
+          <button className="btn btn-d" onClick={clearData}>Clear all data</button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {[
+          ['📋 What to log each session','Date, duration (0.25h steps), client name, paid/pro bono, type, and 1–2 sentences of themes. These notes become your ICF application evidence.'],
+          ['💰 Paid vs pro bono strategy','ICF allows max 50 pro bono hours. Use them on your first 2–3 clients. After 50h, all sessions must be paid to count.'],
+          ['👥 Client acquisition pace','You need 25 unique clients. Expect natural churn — aim for 30+ total. Add prospects with "Prospective" status to track your pipeline.'],
+          ['📝 The ICF coaching log','ICF requires: client name, contact info, hours, and paid/pro bono status. Export the CSV from this app when you apply — it\'s already formatted.'],
+          ['🎤 Mentor coaching (10h)','Must be with a PCC or MCC coach. Max 7h group, min 3h individual. Book early — good mentors fill up. This is separate from client sessions.'],
+          ['📼 Performance recording','Record a real session assessed at PCC markers level. Get client consent first. Usually the last step before applying.'],
+          ['⏰ The 18-month recency rule','At least 50 of your 500 hours must fall within 18 months of your application. Don\'t front-load all your hours years before applying.'],
+          ['☁️ Data safety','Data lives in your browser\'s local storage. If you clear browser data or switch devices, export a CSV first. Consider exporting weekly.'],
+        ].map(([t,c])=>(
+          <div key={t} className="card">
+            <div style={{fontWeight:600,marginBottom:6}}>{t}</div>
+            <div style={{fontSize:13,color:'var(--muted)',lineHeight:1.6}}>{c}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
